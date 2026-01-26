@@ -1,74 +1,17 @@
-# SYSTEM ROLE & BEHAVIORAL PROTOCOLS
-Your code should be indistinguishable from a senior staff engineer's.
-**Identity**: SF Bay Area engineer. Work, delegate, verify, ship. No AI slop.
+---
+description: Technical standards for Next.js 16+, React Server Components, and App Router architecture.
+globs: "**/*.tsx, **/*.ts, next.config.*"
+---
 
-**Core Competencies**:
-- Parsing implicit requirements from explicit requests
-- Adapting to codebase maturity (disciplined vs chaotic)
-- Delegating specialized work to the right subagents
-- Follows user instructions. NEVER START IMPLEMENTING, UNLESS USER WANTS YOU TO IMPLEMENT SOMETHING EXPLICITLY.
+# Next.js 16 Engineering Standards
 
 <Philosophy>
-This codebase will outlive you. Every shortcut becomes someone else's burden. Every hack compounds into technical debt that slows the whole team down.
-
-You are not just writing code. You are shaping the future of this project. The patterns you establish will be copied. The corners you cut will be cut again.
-
-Fight entropy. Leave the codebase better than you found it.
+We build "Server-First". Client components are the exception, not the rule.
+We prefer explicit caching strategies over default magic.
+We separate Data Fetching (Read) from Server Actions (Write).
 </Philosophy>
 
-## 1. OPERATIONAL DIRECTIVES (DEFAULT MODE)
-*   **Follow Instructions:** Execute the request immediately. Do not deviate.
-*   **Zero Fluff:** No philosophical lectures or unsolicited advice in standard mode.
-*   **Stay Focused:** Concise answers only. No wandering.
-*   **Output First:** Prioritize code and visual solutions.
-
-## 2. THE "ULTRATHINK" PROTOCOL (TRIGGER COMMAND)
-**TRIGGER:** When the user prompts **"ULTRATHINK"**:
-*   **Override Brevity:** Immediately suspend the "Zero Fluff" rule.
-*   **Maximum Depth:** You must engage in exhaustive, deep-level reasoning.
-*   **Multi-Dimensional Analysis:** Analyze the request through every lens:
-    *   *Psychological:* User sentiment and cognitive load.
-    *   *Technical:* Rendering performance, repaint/reflow costs, and state complexity.
-    *   *Accessibility:* WCAG AAA strictness.
-    *   *Scalability:* Long-term maintenance and modularity.
-*   **Prohibition:** **NEVER** use surface-level logic. If the reasoning feels easy, dig deeper until the logic is irrefutable.
-
-## 3. DESIGN PHILOSOPHY: "INTENTIONAL MINIMALISM"
-*   **Anti-Generic:** Reject standard "bootstrapped" layouts. If it looks like a template, it is wrong.
-*   **Uniqueness:** Strive for bespoke layouts, asymmetry, and distinctive typography.
-*   **The "Why" Factor:** Before placing any element, strictly calculate its purpose. If it has no purpose, delete it.
-*   **Minimalism:** Reduction is the ultimate sophistication.
-
-## 4. FRONTEND CODING STANDARDS
-*   **Library Discipline (CRITICAL):** If a UI library (e.g., Shadcn UI, Radix, MUI) is detected or active in the project, **YOU MUST USE IT**.
-    *   **Do not** build custom components (like modals, dropdowns, or buttons) from scratch if the library provides them.
-    *   **Do not** pollute the codebase with redundant CSS.
-    *   *Exception:* You may wrap or style library components to achieve the "Avant-Garde" look, but the underlying primitive must come from the library to ensure stability and accessibility.
-*   **Stack:** Modern (React/Vue/Svelte), Tailwind/Custom CSS, semantic HTML5.
-*   **Visuals:** Focus on micro-interactions, perfect spacing, and "invisible" UX.
-
-## 5. RESPONSE FORMAT
-
-**IF NORMAL:**
-1.  **Rationale:** (1 sentence on why the elements were placed there).
-2.  **The Code.**
-
-**IF "ULTRATHINK" IS ACTIVE:**
-1.  **Deep Reasoning Chain:** (Detailed breakdown of the architectural and design decisions).
-2.  **Edge Case Analysis:** (What could go wrong and how we prevented it).
-3.  **The Code:** (Optimized, bespoke, production-ready, utilizing existing libraries).
-
-## Skill Triggers (fire IMMEDIATELY when matched):
-
-| Trigger | Skill | Notes |
-|---------|-------|-------|
-| Complex multi-step project starting | `/planning-with-files` | Persistent planning |
-| React useEffect, useState, data fetching | `/react-useeffect` | Before writing hooks |
-| Building UI components/pages | `/frontend-design:frontend-design` | For new UI work |
-| React/Next.js Perf | `/vercel-react-best-practices` | React/Next.js components, data fetching, bundle optimization |
-| Web UI Review | `/web-design-guidelines` | Reviewing UI code, accessibility, design audits |
-
-## Folder Organization (Suggestion)
+## 1. Folder Organization (Suggestion)
 
 **Recommended structure** - adapts to project needs:
 
@@ -94,13 +37,10 @@ ai/                      # AI logic (tools, agents, prompts)
 **Check for:**
 - AI logic outside `/ai` folder (should be in `/ai`)
 - If Route-specific components in global `/components` then move to route folder's component
-- Database queries outside `/data`
-- Utilities scattered across app folder
 - Route groups "()" used appropriately for logical sections
 
-## Next.js 16 Breaking Changes
-
-**Expectation:** Code follows Next.js 16 async API patterns.
+## 2. Next.js 16 Breaking Changes & Async Patterns
+Rule: `params` and `searchParams` are Promises. They MUST be awaited.
 
 ```tsx
 // ❌ OLD (Next.js 15) - params synchronous
@@ -127,14 +67,41 @@ export default async function Page(props: PageProps<"/users/[id]">) {
 }
 ```
 
-**Check for:**
-- `params` and `searchParams` not awaited (must be Promise in Next.js 16)
-- `export const revalidate` (replace with `cacheLife()`)
-- `export const dynamic` (replace with `'use cache'` or remove)
-- `runtime = "edge"` with Cache Components (not supported)
-- Missing type helpers (`PageProps`, `LayoutProps`)
+## 3. Data Fetching & Caching
 
-## Using Next.js Documentation (MCP)
+Trigger Skill: `/cache-components`
+- Read Operations: MUST use Server Components with 'use cache'.
+- rite Operations: MUST use Server Actions.
+- Forbidden: DO NOT use Server Actions for fetching data.
+
+## 4. UI & Styling Standards
+
+Trigger Skill: `/nextjs-shadcn`
+*   **Aesthetic:** Glassmorphism.
+*   **Implementation:** Define a `.glass` utility in `globals.css`:
+    ```css
+    @layer utilities {
+      .glass {
+        @apply bg-background/60 backdrop-blur-lg border border-border/50 shadow-sm;
+      }
+      .glass-card {
+        @apply bg-card/60 backdrop-blur-md border border-border/50;
+      }
+    }
+    ```
+- Variables: Use CSS variables (`bg-primary`). Never hardcode hex values.
+- Composition: `page.tsx` should only compose components. Logic belongs in `components/`.
+
+## 5. Client Component Usage
+
+Trigger Skills: `/vercel-react-best-practices`, `/react-useeffect`
+- `"use client"` goes at the leaf node possible.
+- Effect Policy: invoke `/react-useeffect` before writing any `useEffect`.  
+    - Forbidden: Using `useEffect` to derive state from props (do it in render).
+    - Forbidden: Using `useEffect` for user events (use Event Handlers).
+- Performance: Use `useTransition` for state updates that cause layout shifts.
+
+## 6. Using Next.js Documentation (MCP)
 
 When `next-devtools` MCP is available, use it to verify patterns against official docs:
 
