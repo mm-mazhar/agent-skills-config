@@ -1,5 +1,5 @@
 ---
-description: Technical standards for Next.js 16+, React Server Components, and App Router architecture.
+description: Technical standards for Next.js 16+, Supabase, React Server Components, and App Router architecture.
 globs: "**/*.tsx, **/*.ts, next.config.*"
 ---
 
@@ -14,6 +14,7 @@ We separate Data Fetching (Read) from Server Actions (Write).
 ## 1. Folder Organization (Suggestion)
 
 **Recommended structure** - adapts to project needs:
+*   **Package Manager:** Detect `bun.lockb` (Bun), `package-lock.json` (npm), etc. **ALWAYS** use the detected manager commands. Never mix them.
 
 ```text
 app/
@@ -38,6 +39,39 @@ ai/                      # AI logic (tools, agents, prompts)
 - AI logic outside `/ai` folder (should be in `/ai`)
 - If Route-specific components in global `/components` then move to route folder's component
 - Route groups "()" used appropriately for logical sections
+
+## 2. Supabase & Data Architecture
+**Trigger Skills:** `/nextjs-supabase-auth`, `/supabase-postgres-best-practices`, `/cache-components`
+
+*   **Clients:** Use specific clients for specific contexts:
+    *   `createClient()` (Server) → Server Components & Actions.
+    *   `createClient()` (Browser) → `useEffect` / Event Handlers (Rarely used for data fetching).
+*   **Fetch Pattern (Read):**
+    ```tsx
+    // Server Component
+    async function getProfile(id: string) {
+      'use cache'
+      cacheTag(`user-${id}`)
+      const supabase = await createClient()
+      return supabase.from('profiles').select('*').eq('id', id).single()
+    }
+    ```
+*   **Mutation Pattern (Write):**
+    ```tsx
+    // Server Action
+    'use server'
+    export async function updateProfile(formData: FormData) {
+      const supabase = await createClient()
+      // Auth Check
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) throw new Error('Unauthorized')
+      
+      await supabase.from('profiles').update(...).eq('id', user.id)
+      updateTag(`user-${user.id}`) // Invalidate Cache
+    }
+    ```
+
+
 
 ## 2. Next.js 16 Breaking Changes & Async Patterns
 Rule: `params` and `searchParams` are Promises. They MUST be awaited.
@@ -77,7 +111,9 @@ Trigger Skill: `/cache-components`
 ## 4. UI & Styling Standards
 
 Trigger Skill: `/nextjs-shadcn`
+*   **Theming:** Rely on CSS Variables in `globals.css` (e.g., `var(--primary)`, `var(--background)`) rather than hardcoded hex values (e.g., `#141413`). This ensures compatibility with the multi-theme system (Green/Blue/Orange/Violet).
 *   **Aesthetic:** Glassmorphism.
+*   **Glassmorphism:** If requested, use Tailwind utilities: `bg-background/60 backdrop-blur-md border border-border/50`.
 *   **Implementation:** Define a `.glass` utility in `globals.css`:
     ```css
     @layer utilities {
@@ -101,7 +137,11 @@ Trigger Skills: `/vercel-react-best-practices`, `/react-useeffect`
     - Forbidden: Using `useEffect` for user events (use Event Handlers).
 - Performance: Use `useTransition` for state updates that cause layout shifts.
 
-## 6. Using Next.js Documentation (MCP)
+## 6. AI Feature Implementation
+*   **Provider Agnostic:** Do not hardcode "OpenAI" or "Anthropic" unless explicitly requested. Use environment variables for `LLM_PROVIDER` and `LLM_MODEL`.
+*   **Context:** Ask user for preference (Anthropic, OpenRouter, etc.) before scaffolding AI logic.
+
+## 7. Using Next.js Documentation (MCP)
 
 When `next-devtools` MCP is available, use it to verify patterns against official docs:
 

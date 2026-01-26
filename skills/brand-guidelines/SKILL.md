@@ -1,73 +1,48 @@
 ---
 name: brand-guidelines
-description: Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
+description: Enforces the project's visual identity, typography, and color logic. Use this to ensure new UI components match the existing SaaS boilerplate styling (Inter font, CSS variables, and Shadcn/Tailwind tokens).
 license: Complete terms in LICENSE.txt
 ---
 
-# Anthropic Brand Styling
+# Project Brand Styling
 
 ## Overview
 
-To access Anthropic's official brand identity and style resources, use this skill.
-
-**Keywords**: branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, Anthropic brand, visual formatting, visual design
+This project uses a **multi-theme SaaS architecture**. Visuals must rely on semantic CSS variables rather than hardcoded colors to ensure they adapt to the user's selected theme (e.g., Dark, Light, Blue, Orange).
 
 ## Brand Guidelines
 
-### Colors
-
-**Main Colors:**
-
-- Dark: `#141413` - Primary text and dark backgrounds
-- Light: `#faf9f5` - Light backgrounds and text on dark
-- Mid Gray: `#b0aea5` - Secondary elements
-- Light Gray: `#e8e6dc` - Subtle backgrounds
-
-**Accent Colors:**
-
-- Orange: `#d97757` - Primary accent
-- Blue: `#6a9bcc` - Secondary accent
-- Green: `#788c5d` - Tertiary accent
-
 ### Typography
 
-- **Headings**: Poppins (with Arial fallback)
-- **Body Text**: Lora (with Georgia fallback)
-- **Note**: Fonts should be pre-installed in your environment for best results
+- **Primary Font**: **Inter** (Sans-serif).
+- **Implementation**: The font is loaded via `next/font/google` in the root layout.
+- **Usage**:
+  - Do not import external fonts like Poppins or Lora.
+  - Rely on Tailwind's default `font-sans` stack which is configured to use Inter.
 
-## Features
+### Colors & Theming
 
-### Smart Font Application
+**CRITICAL**: Do not use Hex codes (e.g., `#141413` or `#d97757`). You must use **Semantic Tailwind Classes** to ensure the UI adapts to the active theme (Green, Blue, Violet, etc.).
 
-- Applies Poppins font to headings (24pt and larger)
-- Applies Lora font to body text
-- Automatically falls back to Arial/Georgia if custom fonts unavailable
-- Preserves readability across all systems
+**Mapping:**
 
-### Text Styling
+| UI Element | Tailwind Class | Concept |
+| :--- | :--- | :--- |
+| **Main Background** | `bg-background` | The page background color |
+| **Main Text** | `text-foreground` | High-contrast text |
+| **Primary Actions** | `bg-primary` `text-primary-foreground` | Main buttons, active states |
+| **Secondary Elements** | `bg-secondary` `text-secondary-foreground` | Subtle badges, secondary buttons |
+| **Muted Text** | `text-muted-foreground` | Subtitles, captions, metadata |
+| **Borders** | `border-border` | Dividers, card outlines |
+| **Cards/Panels** | `bg-card` `text-card-foreground` | Surface elements |
 
-- Headings (24pt+): Poppins font
-- Body text: Lora font
-- Smart color selection based on background
-- Preserves text hierarchy and formatting
+### Visual Details
 
-### Shape and Accent Colors
+- **Radius**: Use the global radius variable via Tailwind's `rounded-md` or `rounded-lg`. Do not hardcode pixels (e.g., `rounded-[4px]`).
+- **Glassmorphism**: When requested via workflow, use: `bg-background/60 backdrop-blur-md border-border/50`.
 
-- Non-text shapes use accent colors
-- Cycles through orange, blue, and green accents
-- Maintains visual interest while staying on-brand
+## Technical Implementation Rules
 
-## Technical Details
-
-### Font Management
-
-- Uses system-installed Poppins and Lora fonts when available
-- Provides automatic fallback to Arial (headings) and Georgia (body)
-- No font installation required - works with existing system fonts
-- For best results, pre-install Poppins and Lora fonts in your environment
-
-### Color Application
-
-- Uses RGB color values for precise brand matching
-- Applied via python-pptx's RGBColor class
-- Maintains color fidelity across different systems
+1. **No Hardcoded Values**: Never write `color: #123456` or `font-family: 'Arial'`.
+2. **Use Utility Classes**: Always use Tailwind utility classes that reference the CSS variables defined in `globals.css`.
+3. **Dark Mode**: Do not write explicit `dark:` classes for basic colors. The semantic variables (`bg-background`, `text-foreground`) handle dark mode switching automatically via CSS variables.
