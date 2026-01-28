@@ -46,7 +46,8 @@ ai/                      # AI logic (tools, agents, prompts)
 *   **Clients:** Use specific clients for specific contexts:
     *   `createClient()` (Server) → Server Components & Actions.
     *   `createClient()` (Browser) → `useEffect` / Event Handlers (Rarely used for data fetching).
-*   **Fetch Pattern (Read):**
+
+*   **Fetch Pattern (Read):** Server Components with `'use cache'`.
     ```tsx
     // Server Component
     async function getProfile(id: string) {
@@ -56,7 +57,7 @@ ai/                      # AI logic (tools, agents, prompts)
       return supabase.from('profiles').select('*').eq('id', id).single()
     }
     ```
-*   **Mutation Pattern (Write):**
+*   **Mutation Pattern (Write):** Server Actions with `updateTag`.
     ```tsx
     // Server Action
     'use server'
@@ -71,9 +72,15 @@ ai/                      # AI logic (tools, agents, prompts)
     }
     ```
 
+## 3. Security & API Standards
+**Trigger Skills:** `/api-security-best-practices`, `/security-reviewer`
 
+*   **Input Validation:** ALL Server Actions and API routes MUST validate inputs using Zod.
+*   **Authentication:** Verify user session (await supabase.auth.getUser()) at the start of every Server Action.
+*   **Rate Limiting:** Implement rate limiting for public-facing mutations (auth, forms).
+*   **Headers:** Ensure secure headers (Helmet/CSP) are configured in `next.config.ts` or `middleware` or via `proxy` (in nextjs 16+).
 
-## 2. Next.js 16 Breaking Changes & Async Patterns
+## 4. Next.js 16 Breaking Changes & Async Patterns
 Rule: `params` and `searchParams` are Promises. They MUST be awaited.
 
 ```tsx
@@ -99,16 +106,24 @@ export default async function Page(props: PageProps<"/users/[id]">) {
   const { id } = await props.params
   return <UserProfile id={id} />
 }
+
+// ✅ Correct
+// In Next.js 16, dynamic route parameters are asynchronous.
+// You must type `params` as a Promise and await it before usage.
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params; // // Await before destructuring
+  return <h1>{slug}</h1>;
+}
 ```
 
-## 3. Data Fetching & Caching
+## 5. Data Fetching & Caching
 
 Trigger Skill: `/cache-components`
 - Read Operations: MUST use Server Components with 'use cache'.
 - rite Operations: MUST use Server Actions.
 - Forbidden: DO NOT use Server Actions for fetching data.
 
-## 4. UI & Styling Standards
+## 6. UI & Styling Standards
 
 Trigger Skill: `/nextjs-shadcn`
 *   **Theming:** Rely on CSS Variables in `globals.css` (e.g., `var(--primary)`, `var(--background)`) rather than hardcoded hex values (e.g., `#141413`). This ensures compatibility with the multi-theme system (Green/Blue/Orange/Violet).
@@ -128,7 +143,7 @@ Trigger Skill: `/nextjs-shadcn`
 - Variables: Use CSS variables (`bg-primary`). Never hardcode hex values.
 - Composition: `page.tsx` should only compose components. Logic belongs in `components/`.
 
-## 5. Client Component Usage
+## 7. Client Component Usage
 
 Trigger Skills: `/vercel-react-best-practices`, `/react-useeffect`
 - `"use client"` goes at the leaf node possible.
@@ -137,11 +152,11 @@ Trigger Skills: `/vercel-react-best-practices`, `/react-useeffect`
     - Forbidden: Using `useEffect` for user events (use Event Handlers).
 - Performance: Use `useTransition` for state updates that cause layout shifts.
 
-## 6. AI Feature Implementation
+## 8. AI Feature Implementation
 *   **Provider Agnostic:** Do not hardcode "OpenAI" or "Anthropic" unless explicitly requested. Use environment variables for `LLM_PROVIDER` and `LLM_MODEL`.
 *   **Context:** Ask user for preference (Anthropic, OpenRouter, etc.) before scaffolding AI logic.
 
-## 7. Using Next.js Documentation (MCP)
+## 9. Using Next.js Documentation (MCP)
 
 When `next-devtools` MCP is available, use it to verify patterns against official docs:
 
