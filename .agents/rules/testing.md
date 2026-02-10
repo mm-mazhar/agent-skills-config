@@ -6,10 +6,10 @@ globs: "**/*.{test,spec}.ts, **/__tests__/**"
 # Testing Standards
 
 ## 1. E2E & Browser Automation
-**Trigger Skill:** `/webapp-testing`
+**Trigger Skill or Powers:** `/webapp-testing`
 
-*   **Tool:** Playwright (via Python scripts in `skills/webapp-testing`).
-*   **Rule:** Do not manually write complex Playwright boilerplate. Invoke the `/webapp-testing` skill to scaffold and run browser automation.
+*   **Tool:** Playwright (via Python scripts in `skills/webapp-testing` or `\powers\installed\webapp-testing\POWER.md`).
+*   **Rule:** Do not manually write complex Playwright boilerplate. Invoke the `/webapp-testing` skill or `\powers\installed\webapp-testing\POWER.md` to scaffold and run browser automation.
 *   **Scope:** User flows, authentication, payment handling, critical UI paths.
 
 ## 2. Unit & Integration Testing

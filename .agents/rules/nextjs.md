@@ -12,7 +12,7 @@ We prefer explicit typing and validation over "magic" fetching.
 </Philosophy>
 
 ## 1. oRPC & Data Layer (Strict Requirement)
-**Trigger Skills:** `/orpc-contract-first`, `/zod-schema-validation`
+**Trigger Skills or Powers:** `/orpc-contract-first`, `/zod-schema-validation`
 
 **The Golden Rule:** DO NOT use `fetch`, `axios`, or raw Server Actions (`'use server'`) for application data. **ALWAYS use oRPC.**
 
@@ -86,7 +86,7 @@ ai/                      # AI logic (tools, agents, prompts)
 - No API Magic: Logic should not exist in `app/api/...` unless it is a webhook (Stripe) or the main `api/rpc` handler.
 
 ## 3. Supabase & Data Architecture (via oRPC)
-**Trigger Skills:** `/nextjs-supabase-auth`, `/supabase-postgres-best-practices`, `/cache-components`, `/orpc-contract-first`
+**Trigger Skills or Powers:** `/nextjs-supabase-auth`, `/supabase-postgres-best-practices`, `/cache-components`, `/orpc-contract-first`
 
 * Role of Supabase: Supabase is strictly the Database & Auth Provider. It should NOT be called directly from UI components (Page/Layout/Client Component).
 * **Access Pattern**:
@@ -147,7 +147,7 @@ ai/                      # AI logic (tools, agents, prompts)
     ```
 
 ## 4. Security & Validation
-**Trigger Skills:** `/api-security-best-practices`, `/security-reviewer`
+**Trigger Skills or Powers:** `/api-security-best-practices`, `/security-reviewer`
 
 *   **Input Validation:** ALL oRPC procedures MUST have a `.input(z.object(...))` schema.
 *   **Authorization:** 
@@ -177,7 +177,7 @@ Rule: `params` and `searchParams` are Promises. They MUST be awaited.
 
 ## 6. UI & Styling Standards (Shadcn UI)
 
-* Trigger Skill: `/nextjs-shadcn`
+* Trigger  or Powers: `/nextjs-shadcn`
 * **Theming**: Rely on CSS Variables `(var(--primary))` in `globals.css`.
 * **Glassmorphism**: Use use Tailwind utilities: `bg-background/60 backdrop-blur-md border border-border/50` for the glass look, if asked.
 **Components**: Logic belongs in `components/`, page files should strictly compose components and fetch data via oRPC.

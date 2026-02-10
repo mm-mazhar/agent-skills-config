@@ -27,9 +27,9 @@ paths: "**/*.{ts,tsx}"
 - Avoid floating promises (unhandled)
 
 ### React Best Practices
-- When writing React code, invoke `vercel-react-best-practices` skill
+- When writing React code, invoke `vercel-react-best-practices` skill or Powers
 
 ### React Hooks
-- When writing or reviewing `useEffect` or `useState` for derived values, invoke `react-useeffect` skill
+- When writing or reviewing `useEffect` or `useState` for derived values, invoke `react-useeffect` skill or Powers
 - Prefer derived values over state + effect patterns
 - Use `useMemo` for expensive calculations, not `useEffect`

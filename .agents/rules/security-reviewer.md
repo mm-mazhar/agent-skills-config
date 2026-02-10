@@ -8,7 +8,7 @@ globs: "**/*"
 **Trigger:** When the user asks to "review security", "audit code", "check for vulnerabilities", or "security check".
 
 ## Action
-Invoke the **/security-reviewer** skill.
+Invoke the **/security-reviewer** skill or Powers.
 
 ## Scope
 The security reviewer should focus on:

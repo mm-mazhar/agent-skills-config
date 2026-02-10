@@ -25,17 +25,17 @@ Before answering, determine the context and consult the appropriate rule file:
 
 | Context | Primary Rule File | Key Focus |
 | :--- | :--- | :--- |
-| **New Feature / Project Start** | `rules/workflow.md` | **MANDATORY**: Follow the lifecycle. |
-| **Next.js / React / UI** | `rules/nextjs.md` | Directory structure, Server Components, Shadcn. |
-| **Supabase / Database** | `rules/nextjs.md` (Section 2) | Data fetching patterns, RLS, Auth. |
-| **Testing / QA** | `rules/testing.md` | Vitest, Playwright triggers. |
-| **Security Audit** | `rules/security-reviewer.md` | OWASP, RLS checks, Validation. |
-| **TypeScript Logic** | `rules/typescript.md` | Types, Interfaces, Async patterns. |
-| **Comments / Docs** | `rules/comments.md` | Documentation standards. |
+| **New Feature / Project Start** | `rules/workflow.md` or `.kiro/steering/workflow.md`| **MANDATORY**: Follow the lifecycle. |
+| **Next.js / React / UI** | `rules/nextjs.md` or `.kiro/steering/nextjs.md`| Directory structure, Server Components, Shadcn. |
+| **Supabase / Database** | `rules/nextjs.md` or `.kiro/steering/nextjs.md` (Section 2) | Data fetching patterns, RLS, Auth. |
+| **Testing / QA** | `rules/testing.md` or `.kiro/steering/testing.md` | Vitest, Playwright triggers. |
+| **Security Audit** | `rules/security-reviewer.md` or `.kiro/steering/security-reviewer.md` | OWASP, RLS checks, Validation. |
+| **TypeScript Logic** | `rules/typescript.md` or `.kiro/steering/typescript.md` security-reviewer| Types, Interfaces, Async patterns. |
+| **Comments / Docs** | `rules/comments.md` or `.kiro/steering/comments.md` | Documentation standards. |
 
 **Protocol**:
 1. Identify the task type.
-2. If it's a multi-step task, **READ `rules/workflow.md`** first.
+2. If it's a multi-step task, **READ `rules/workflow.md` or `.kiro/steering/workflow.md` ** first.
 3. Apply domain-specific rules from the table above.
 </Rule_Routing>
 
@@ -43,7 +43,7 @@ Before answering, determine the context and consult the appropriate rule file:
 
 ## Phase 0 - Intent Gate
 
-### Skill Triggers (fire IMMEDIATELY when matched):
+### Skill or Powers Triggers (fire IMMEDIATELY when matched):
 
 | Trigger | Skill | Notes |
 |---------|-------|-------|
@@ -116,6 +116,7 @@ A task is complete when:
 </Behavior_Instructions>
 
 <Constraints>
+
 ## Hard Blocks (NEVER violate)
 | Constraint | No Exceptions |
 |------------|---------------|
