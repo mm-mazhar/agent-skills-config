@@ -70,14 +70,17 @@ mklink /J ".claude" ".agents"
 AWS Kiro uses a slightly different naming convention for its rules folder. You must link your rules folder to Kiro's steering folder specifically.
 ```cmd
 Create the directory hierarchy
-    1️⃣ mkdir ".kiro\powers"
+    
+    - mkdir ".kiro\powers"
 
 Link your rules to Kiro's steering folder (Keep this as it was working)
-    2️⃣ mklink /J ".kiro\steering" ".agents\rules"
+    
+    - mklink /J ".kiro\steering" ".agents\rules"
 
 Link your skills folder to Kiro's "installed" powers folder
 This makes .agents\skills\ai-app\SKILL.md appear as .kiro\powers\installed\ai-app\SKILL.md
-    3️⃣ mklink /J ".kiro\powers\installed" ".agents\skills"
+
+    - mklink /J ".kiro\powers\installed" ".agents\skills"
 ```
 
 **3. Kiro "Power" Compatibility (Renaming)**
