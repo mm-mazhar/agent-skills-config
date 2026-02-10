@@ -1,17 +1,55 @@
 ---
-description: Technical standards for Next.js 16+, Supabase, React Server Components, and App Router architecture.
-globs: "**/*.tsx, **/*.ts, next.config.*"
+description: Technical standards for Next.js 16+, oRPC, Supabase, and App Router architecture.
+globs: "**/*.tsx, **/*.ts, next.config.*, lib/orpc/**/*.ts"
 ---
 
 # Next.js 16 Engineering Standards
 
 <Philosophy>
-We build "Server-First". Client components are the exception, not the rule.
-We prefer explicit caching strategies over default magic.
-We separate Data Fetching (Read) from Server Actions (Write).
+We build "Contract-First". The Data Layer (oRPC) is the single source of truth.
+We separate Data Definition (Zod Schemas/Routers) from UI Implementation.
+We prefer explicit typing and validation over "magic" fetching.
 </Philosophy>
 
-## 1. Folder Organization (Suggestion)
+## 1. oRPC & Data Layer (Strict Requirement)
+**Trigger Skills:** `/orpc-contract-first`, `/zod-schema-validation`
+
+**The Golden Rule:** DO NOT use `fetch`, `axios`, or raw Server Actions (`'use server'`) for application data. **ALWAYS use oRPC.**
+
+### Workflow: Contract-First Development
+Before writing any React component, you must establish the backend contract:
+1.  **Define Schema:** Create Zod schemas for Input and Output in `lib/orpc/schemas` (or inline if simple).
+2.  **Define Procedure:** Create the procedure in `lib/orpc/routers/{domain}.ts`.
+3.  **Register:** Ensure the router is merged into `lib/orpc/root.ts`.
+4.  **Implement UI:** Only then, build the component consuming the procedure.
+
+### Implementation Patterns
+*   **Server Components (RSC):**
+    Use the direct caller (usually `rsc-client` or server caller) to fetch data without HTTP overhead.
+    ```tsx
+    // ✅ Correct: calling oRPC from Server Component
+    import { orpc } from '@/lib/orpc/rsc-client' 
+    
+    export default async function Page() {
+      const data = await orpc.project.list() // Direct server call
+      return <ProjectList initialData={data} />
+    }
+    ```
+
+*   **Client Components:**
+    Use the query hooks provided by the oRPC React client.
+    ```tsx
+    // ✅ Correct: Client-side mutation
+    'use client'
+    import { useORPC } from '@/lib/orpc/client'
+    
+    export function SaveButton() {
+      const { mutate } = useORPC().project.create.useMutation()
+      // ...
+    }
+    ```
+
+## 2. Folder Organization (Suggestion)
 
 **Recommended structure** - adapts to project needs:
 *   **Package Manager:** Detect `bun.lockb` (Bun), `package-lock.json` (npm), etc. **ALWAYS** use the detected manager commands. Never mix them.
@@ -31,6 +69,12 @@ components/              # Shared components
 └── shared/              # Business components
 hooks/                   # Custom React hooks
 lib/                     # Shared utilities
+├── orpc/                # THE DATA LAYER
+│   ├── routers/         # Domain logic (admin.ts, project.ts, etc.)
+│   ├── root.ts          # Root router definition
+│   ├── procedures.ts    # Middleware & Base procedures
+│   ├── client.ts        # React Query Client
+│   └── rsc-client.ts    # Server Component Client
 data/                    # Database queries
 ai/                      # AI logic (tools, agents, prompts)
 ```
@@ -39,122 +83,115 @@ ai/                      # AI logic (tools, agents, prompts)
 - AI logic outside `/ai` folder (should be in `/ai`)
 - If Route-specific components in global `/components` then move to route folder's component
 - Route groups "()" used appropriately for logical sections
+- No API Magic: Logic should not exist in `app/api/...` unless it is a webhook (Stripe) or the main `api/rpc` handler.
 
-## 2. Supabase & Data Architecture
-**Trigger Skills:** `/nextjs-supabase-auth`, `/supabase-postgres-best-practices`, `/cache-components`
+## 3. Supabase & Data Architecture (via oRPC)
+**Trigger Skills:** `/nextjs-supabase-auth`, `/supabase-postgres-best-practices`, `/cache-components`, `/orpc-contract-first`
 
-*   **Clients:** Use specific clients for specific contexts:
-    *   `createClient()` (Server) → Server Components & Actions.
-    *   `createClient()` (Browser) → `useEffect` / Event Handlers (Rarely used for data fetching).
+* Role of Supabase: Supabase is strictly the Database & Auth Provider. It should NOT be called directly from UI components (Page/Layout/Client Component).
+* **Access Pattern**:
+  * **Allowed**: `lib/orpc/context.ts` (Middleware), `lib/orpc/routers/*.ts` (Procedures).
+  * **Forbidden**: calling supabase.from(...) inside app/**/*.tsx`.
+  * **Fetch Pattern (Read)**: 
 
-*   **Fetch Pattern (Read):** Server Components with `'use cache'`.
-    ```tsx
-    // Server Component
-    async function getProfile(id: string) {
-      'use cache'
-      cacheTag(`user-${id}`)
-      const supabase = await createClient()
-      return supabase.from('profiles').select('*').eq('id', id).single()
+    Instead of direct queries, define a Query Procedure.
+
+    ```ts
+    // 1. Define in lib/orpc/routers/user.ts
+    export const userParams = z.object({ id: z.string() });
+
+    // Procedure logic handles the DB call
+    export const getProfile = publicProcedure
+      .input(userParams)
+      .query(async ({ ctx, input }) => {
+        return ctx.db.from('profiles').select('*').eq('id', input.id).single();
+      });
+
+    // 2. Consume in Server Component (app/page.tsx)
+    import { orpc } from '@/lib/orpc/rsc-client';
+
+    export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+      const { id } = await params;
+      const profile = await orpc.user.getProfile({ id }); // Type-safe!
+      return <ProfileView data={profile} />;
     }
     ```
-*   **Mutation Pattern (Write):** Server Actions with `updateTag`.
-    ```tsx
-    // Server Action
-    'use server'
-    export async function updateProfile(formData: FormData) {
-      const supabase = await createClient()
-      // Auth Check
-      const { data: { user }, error } = await supabase.auth.getUser()
-      if (error || !user) throw new Error('Unauthorized')
+  * **Mutation Pattern (Write)**:
+
+    Instead of FormData server actions, use Mutation Procedures.
+
+    ```ts
+    // 1. Define in lib/orpc/routers/user.ts
+    export const updateProfileSchema = z.object({ 
+      id: z.string(), 
+      name: z.string().min(2) 
+    });
+
+    export const updateProfile = protectedProcedure // Auto-checks auth
+      .input(updateProfileSchema)
+      .mutation(async ({ ctx, input }) => {
+        const { error } = await ctx.db.from('profiles').update({ name: input.name }).eq('id', input.id);
+        if (error) throw new Error(error.message);
+        // Cache invalidation happens here if needed
+      });
       
-      await supabase.from('profiles').update(...).eq('id', user.id)
-      updateTag(`user-${user.id}`) // Invalidate Cache
+    // 2. Consume in Client Component
+    'use client'
+    import { useORPC } from '@/lib/orpc/client';
+
+    export function SaveButton({ id }) {
+      const { mutate } = useORPC().user.updateProfile.useMutation();
+      
+      return <button onClick={() => mutate({ id, name: "New Name" })}>Save</button>;
     }
     ```
 
-## 3. Security & API Standards
+## 4. Security & Validation
 **Trigger Skills:** `/api-security-best-practices`, `/security-reviewer`
 
-*   **Input Validation:** ALL Server Actions and API routes MUST validate inputs using Zod.
-*   **Authentication:** Verify user session (await supabase.auth.getUser()) at the start of every Server Action.
-*   **Rate Limiting:** Implement rate limiting for public-facing mutations (auth, forms).
-*   **Headers:** Ensure secure headers (Helmet/CSP) are configured in `next.config.ts` or `middleware` or via `proxy` (in nextjs 16+).
+*   **Input Validation:** ALL oRPC procedures MUST have a `.input(z.object(...))` schema.
+*   **Authorization:** 
+    *   Use `publicProcedure` for open endpoints.
+    *   Use `protectedProcedure` (or authenticated middleware) for everything else.
+    *   Check specific permissions (RBAC) inside the procedure logic if needed.
 
-## 4. Next.js 16 Breaking Changes & Async Patterns
+*   **Rate Limiting:** Implement rate limiting in the `api/rpc` route handler if required.
+
+## 5. Next.js 16 Breaking Changes & Async Patterns
 Rule: `params` and `searchParams` are Promises. They MUST be awaited.
+  ```tsx
+  // ✅ Correct (Next.js 16)
+  export default async function Page({
+    params
+  }: {
+    params: Promise<{ id: string }>
+  }) {
+    const { id } = await params
+    
+    // Example: Fetching via oRPC using the awaited ID
+    const project = await orpc.project.get({ id })
+    
+    return <div>{project.name}</div>
+  }
+  ```
 
-```tsx
-// ❌ OLD (Next.js 15) - params synchronous
-export default function Page({ params }: { params: { id: string } }) {
-  return <div>{params.id}</div>
-}
+## 6. UI & Styling Standards (Shadcn UI)
 
-// ✅ NEW (Next.js 16) - params is Promise
-export default async function Page({
-  params
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-  return <div>{id}</div>
-}
-
-// ✅ Type helpers (Next.js 16)
-import type { PageProps, LayoutProps } from "next"
-
-export default async function Page(props: PageProps<"/users/[id]">) {
-  const { id } = await props.params
-  return <UserProfile id={id} />
-}
-
-// ✅ Correct
-// In Next.js 16, dynamic route parameters are asynchronous.
-// You must type `params` as a Promise and await it before usage.
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params; // // Await before destructuring
-  return <h1>{slug}</h1>;
-}
-```
-
-## 5. Data Fetching & Caching
-
-Trigger Skill: `/cache-components`
-- Read Operations: MUST use Server Components with 'use cache'.
-- rite Operations: MUST use Server Actions.
-- Forbidden: DO NOT use Server Actions for fetching data.
-
-## 6. UI & Styling Standards
-
-Trigger Skill: `/nextjs-shadcn`
-*   **Theming:** Rely on CSS Variables in `globals.css` (e.g., `var(--primary)`, `var(--background)`) rather than hardcoded hex values (e.g., `#141413`). This ensures compatibility with the multi-theme system (Green/Blue/Orange/Violet).
-*   **Aesthetic:** Glassmorphism.
-*   **Glassmorphism:** If requested, use Tailwind utilities: `bg-background/60 backdrop-blur-md border border-border/50`.
-*   **Implementation:** Define a `.glass` utility in `globals.css`:
-    ```css
-    @layer utilities {
-      .glass {
-        @apply bg-background/60 backdrop-blur-lg border border-border/50 shadow-sm;
-      }
-      .glass-card {
-        @apply bg-card/60 backdrop-blur-md border border-border/50;
-      }
-    }
-    ```
-- Variables: Use CSS variables (`bg-primary`). Never hardcode hex values.
-- Composition: `page.tsx` should only compose components. Logic belongs in `components/`.
+* Trigger Skill: `/nextjs-shadcn`
+* **Theming**: Rely on CSS Variables `(var(--primary))` in `globals.css`.
+* **Glassmorphism**: Use use Tailwind utilities: `bg-background/60 backdrop-blur-md border border-border/50` for the glass look, if asked.
+**Components**: Logic belongs in `components/`, page files should strictly compose components and fetch data via oRPC.
 
 ## 7. Client Component Usage
 
-Trigger Skills: `/vercel-react-best-practices`, `/react-useeffect`
-- `"use client"` goes at the leaf node possible.
-- Effect Policy: invoke `/react-useeffect` before writing any `useEffect`.  
-    - Forbidden: Using `useEffect` to derive state from props (do it in render).
-    - Forbidden: Using `useEffect` for user events (use Event Handlers).
-- Performance: Use `useTransition` for state updates that cause layout shifts.
+* "use client" goes at the leaf node possible.
+* **Mutations**: All write operations (Create, Update, Delete) must happen via oRPC Mutations in Client Components or Server Actions (only if necessary for progressive enhancement).
+* State: Use `useTransition` when triggering specific UI updates that might block.
 
 ## 8. AI Feature Implementation
 *   **Provider Agnostic:** Do not hardcode "OpenAI" or "Anthropic" unless explicitly requested. Use environment variables for `LLM_PROVIDER` and `LLM_MODEL`.
 *   **Context:** Ask user for preference (Anthropic, OpenRouter, etc.) before scaffolding AI logic.
+*   Context: AI Agents should be exposed via oRPC procedures (e.g., orpc.ai.generateResponse) rather than direct API routes, allowing type-safe streaming where supported.
 
 ## 9. Using Next.js Documentation (MCP)
 
@@ -167,33 +204,12 @@ When `next-devtools` MCP is available, use it to verify patterns against officia
 - `mcp__next-devtools__nextjs_call` - Call Next.js MCP tools (get_errors, etc.)
 
 ### When to Use MCP
-
-1. **Verify cache patterns** - Fetch `/docs/app/getting-started/caching-and-revalidating`
-2. **Check Server Component rules** - Fetch `/docs/app/getting-started/server-and-client-components`
-3. **Validate layout patterns** - Fetch `/docs/app/getting-started/layouts-and-pages`
-4. **Confirm Server Action usage** - Fetch `/docs/app/getting-started/updating-data`
-
-### Example Usage
-
-When reviewing cache patterns and unsure about current best practices:
-
-1. Use `mcp__next-devtools__nextjs_docs` with path from `nextjs-docs://llms-index`
-2. Compare project code against official patterns
-3. Include doc references in report when flagging issues
-
-### Integration with Running Dev Server
-
-If the project has a running Next.js dev server:
-
-1. Use `mcp__next-devtools__nextjs_index` to discover the server
-2. Use `mcp__next-devtools__nextjs_call` with `get_errors` to check for runtime issues
-3. Include any MCP-discovered errors in the review report
+1. **Verify Server Component rules** - `Fetch /docs/app/getting-started/`server-and-client-components
+2. **Validate Layout patterns** - Fetch `/docs/app/getting-started/layouts-and-pages`
+3. **Check oRPC Integration** - (Since oRPC is 3rd party, rely on the `lib/orpc` files in the project for context).
 
 ## Notes
-
-- When unsure, classify as "Recommendation" not "Critical"
-- Include file paths and line numbers when possible
-- Reference the `/nextjs-shadcn` skill for pattern details
-- Reference the `/cache-components` skill for caching details
+* **Context Awareness**: If I ask for a feature, search `lib/orpc/routers` first. If a procedure doesn't exist, propose the Zod schema and Procedure before writing the UI.
+* **Refactoring**: If you see `fetch('/api/...')`in the codebase, flag it as a violation and suggest refactoring to oRPC.
 
 

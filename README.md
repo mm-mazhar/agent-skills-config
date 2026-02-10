@@ -27,7 +27,7 @@ project-root/
 KILO CODE, TRAE, ANTIGRAVITY (Project Level)
 --------------------------------------------
 ```
-proproject-root/
+project-root/
     ├── .kilocode/ (FOR TRAE -> .trae/, FOR ANITGRAVITY -> .agent/)
     │   ├── rules/
     │   │   ├── comments.md
@@ -58,28 +58,44 @@ Create SYMLNK
 
 **1. Create Directory Junctions**
 These commands make the IDE-specific folders (like .trae) "mirror" your master .agents folder.
-    ```cmd
-    cmd
-    mklink /J ".trae" ".agents"
-    mklink /J ".kilocode" ".agents"
-    mklink /J ".agent" ".agents"
-    mklink /J ".claude" ".agents"
-    ```
+
+```cmd
+mklink /J ".trae" ".agents"
+mklink /J ".kilocode" ".agents"
+mklink /J ".agent" ".agents"
+mklink /J ".claude" ".agents"
+```
 
 **2. Create the Kiro Specific Structure**
 AWS Kiro uses a slightly different naming convention for its rules folder. You must link your rules folder to Kiro's steering folder specifically.
-    ```cmd
-    :: Create the base .kiro directory
-    mkdir ".kiro"
+```cmd
+Create the directory hierarchy
+    1️⃣ mkdir ".kiro\powers"
 
-    :: Link the steering folder specifically
-    mklink /J ".kiro\steering" ".agents\rules"
+Link your rules to Kiro's steering folder (Keep this as it was working)
+    2️⃣ mklink /J ".kiro\steering" ".agents\rules"
 
-    :: Link the skills folder
-    mklink /J ".kiro\skills" ".agents\skills"
-    ```
+Link your skills folder to Kiro's "installed" powers folder
+This makes .agents\skills\ai-app\SKILL.md appear as .kiro\powers\installed\ai-app\SKILL.md
+    3️⃣ mklink /J ".kiro\powers\installed" ".agents\skills"
+```
 
-**3. Sync the Main Instruction Files**
+**3. Kiro "Power" Compatibility (Renaming)**
+Kiro requires `POWER.md` instead of `SKILL.md`. Run this in PowerShell to create aliases without duplicating data:
+
+```Powershell
+Get-ChildItem -Path ".agents\skills" -Filter "SKILL.md" -Recurse | ForEach-Object {
+    cmd /c mklink /H "$($_.DirectoryName)\POWER.md" "$($_.FullName)"
+}
+```
+
+or in `cmd`
+
+```cmd
+FOR /R ".agents\skills" %G IN (SKILL.md) DO IF NOT EXIST "%~dpGPOWER.md" mklink /H "%~dpGPOWER.md" "%G"
+```
+
+**4. Sync the Main Instruction Files**
 Since some IDEs prefer `AGENTS.md` and others (like Claude) require `CLAUDE.md`, you should link them so changes in one reflect in the other:
     ```cmd
     mklink "CLAUDE.md" "AGENTS.md"
