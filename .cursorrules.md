@@ -87,7 +87,7 @@ Before answering, determine the context and consult the appropriate rule file:
 1.  **External Docs (Librarian)**:
     *   **CHECK FIRST**: Do I have an MCP tool for this? (e.g., `nextjs-docs`, `supabase-docs`).
     *   **Action**: Use the available MCP or MCPs to fetch specific API references (e.g., "Next.js 16 params async").
-    *   **Fallback**: If no MCP, perform a targeted web search.
+    *   **Fallback**: If no MCP, perform a targeted web search or you may use `context7` or `ref` mcp servers.
     *   **Constraint**: NEVER guess APIs for Next.js, Supabase, or Stripe.
 
 2.  **Internal Context (Explore)**:
