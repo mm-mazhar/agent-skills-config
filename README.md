@@ -150,3 +150,21 @@ Since some IDEs prefer `AGENTS.md` and others (like Claude) require `CLAUDE.md`,
 * **Kiro "Power" Aliasing**: The loop inside the script automatically manages the `SKILL.md` vs `POWER.md`requirement. Because it uses Hard Links (`/H`), your IDEs will never get "confused"—they both point to the exact same physical data.
 
 * **Instruction Parity**: By linking `.cursorrules`, `.traerules`, and `AGENTS.md` to your `CLAUDE.md`, you ensure that no matter which "Chat" or "Builder" mode you open, the AI starts with your Senior Staff Engineer rules and your Glassmorphism design standards.
+
+---
+
+### Zip skills with `skill_zipper.ps1`
+
+From the project root in PowerShell, run:
+
+```powershell
+.\skill_zipper.ps1
+```
+
+If the script is blocked, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\skill_zipper.ps1
+```
+
+This zips each folder under `.\skills` that contains a `SKILL.md` into `outZips`.
